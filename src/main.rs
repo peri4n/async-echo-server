@@ -1,4 +1,4 @@
-use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -9,17 +9,11 @@ async fn main() -> io::Result<()> {
         println!("New connection at {}", addr);
 
         tokio::spawn(async move {
-            let (reader, mut writer) = socket.split();
-            let mut buf = String::with_capacity(1000);
-            let mut reader = BufReader::new(reader);
+            let (mut reader, mut writer) = socket.split();
+            print!("Starting to echo data for {}\n", addr);
 
-            while let Ok(_) = reader.read_line(&mut buf).await {
-                if buf.trim() == "quit" {
-                    break;
-                }
-                writer.write_all(buf.as_bytes()).await.unwrap();
-                buf.clear();
-            }
+            io::copy(&mut reader, &mut writer).await.unwrap();
+            println!("Connection at {} closed", addr);
         });
     }
 }
